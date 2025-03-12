@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cardaq API Request</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <h1>Cardaq API Request</h1>
+
+    <h2>Fill in the form to create a Product</h2>
+    <form id="productForm">
+        <input type="text" name="brand" placeholder="Brand ID" value="25eae325-8f0e-4350-b92d-c6e3cb03f94c">
+        <input type="text" name="currency" placeholder="Currency: eg. GBP">
+        <input type="text" name="price" placeholder="Price">
+        <input type="text" name="title" placeholder="Title">
+        <button type="submit">Create Product</button>
+    </form>
+        <br>
+    <h2>List of Products</h2>
+    <form id="productListForm">
+        <button type="submit">Refresh Product List</button>
+    </form>
+    <div id="productList"></div>
+<div id="response"></div>
+
+    <script>
+        document.getElementById('productForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const brand = document.querySelector('#productForm input[name="brand"]').value;
+            const currency = document.querySelector('#productForm input[name="currency"]').value;
+            const price = parseFloat(document.querySelector('#productForm input[name="price"]').value);
+            const title = document.querySelector('#productForm input[name="title"]').value;
+
+            if (!brand || !currency || !price || !title) {
+                document.getElementById('response').innerText = 'All fields are required.';
+                return;
+            }
+
+            try {
+                const response = await fetch('/product', { 
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        "brand": brand,
+                        "currency": currency,
+                        "price": price,
+                        "title": title
+                    })
+                });
+
+                const data = await response.json();
+                document.getElementById('response').innerText = JSON.stringify(data, null, 2);
+               
+                if (data.link) {
+                    window.location.href = data.link;
+                }
+
+                // Fetch and display the updated list of products
+                fetchProducts();
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('response').innerText = `Error: ${error.message}`;
+            }
+        });
+
+        async function fetchProducts() {
+            try {
+                const response = await fetch('/products');
+                const data = await response.json();
+                const products = data.results || data; // Adjust based on the actual response structure
+                const productList = document.getElementById('productList');
+                productList.innerHTML = '';
+
+                products.forEach(product => {
+                    const productItem = document.createElement('div');
+                    productItem.innerText = `Title: ${product.title}, Brand: ${product.brand.brand_name}, Price: ${product.price} ${product.currency}`;
+                    
+                    const orderButton = document.createElement('button');
+                    orderButton.innerText = 'Order';
+                    orderButton.addEventListener('click', async function() {
+                        try {
+                            const orderResponse = await fetch('/submit', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    "client": {
+                                        "email": "example@mail.com"
+                                    },
+                                    "products": [
+                                        {
+                                            "price": product.price,
+                                            "title": product.title
+                                        }
+                                    ]
+                                })
+                            });
+
+                            const orderData = await orderResponse.json();
+                            document.getElementById('response').innerText = JSON.stringify(orderData, null, 2);
+
+                            if (orderData.link) {
+                                window.location.href = orderData.link;
+                            }
+                        } catch (error) {
+                            console.error('Error:', error);
+                            document.getElementById('response').innerText = `Error: ${error.message}`;
+                        }
+                    });
+
+                    productItem.appendChild(orderButton);
+                    productList.appendChild(productItem);
+                });
+            } catch (error) {
+                console.error('Error fetching products:', error);
+            }
+        }
+
+        // Fetch and display the list of products when the page loads
+        fetchProducts();
+        document.getElementById('productListForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            fetchProducts();
+        });
+    </script>
+</body>
+</html>
