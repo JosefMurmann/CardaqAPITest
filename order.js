@@ -18,7 +18,7 @@ app.post('/submit', async (req, res) => {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': 'Bearer 100f3d7982112ded1876c7b8759718dffe0635d79a8443a260467a5d717f67f2'
+                'Authorization': 'Bearer ****'
             },
             body: JSON.stringify({
                 "client": {
